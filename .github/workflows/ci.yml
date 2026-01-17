@@ -46,8 +46,8 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           # 1. Install System Libraries via Homebrew (The "Good" TBB)
-          brew install wget curl cmake protobuf tbb
-          
+	  brew install wget curl cmake protobuf tbb open-mpi 
+         
           # 2. Install Conda (For runtime dependencies)
           if [[ $(uname -m) == 'arm64' ]]; then
              MINIFORGE_FILE="Miniforge3-24.11.3-2-MacOSX-arm64.sh"
@@ -62,9 +62,6 @@ jobs:
         run: |
           pip install snakemake pandas
 
-      # --- THE FIX: COMPILE MANUALLY ---
-      # We build the binary using the System TBB (installed via apt/brew).
-      # Because we do this OUTSIDE of Snakemake, it uses the correct libraries.
       - name: Compile C++ Code
         run: |
           mkdir -p build
@@ -76,10 +73,6 @@ jobs:
           # Build the binaries
           make -j2
           
-          # Ensure binaries are where Snakemake expects them.
-          # (Modify this copy command if your Snakefile expects binaries in a specific folder, e.g. 'bin/')
-          # cp wepp ../bin/ || true
-
       # --- RUN PIPELINE ---
       - name: Run WEPP
         run: |
@@ -88,6 +81,4 @@ jobs:
           }
           export -f run-wepp
 
-          # When Snakemake runs, it will see the binary is already built and SKIP the compile step.
-          # This allows the rest of the pipeline (like Usher) to run in Conda without crashing the build.
           run-wepp help --cores 1 --use-conda --conda-frontend mamba
