@@ -45,7 +45,7 @@ jobs:
       - name: Install Dependencies (macOS)
         if: runner.os == 'macOS'
         run: |
-	  brew install wget curl cmake protobuf tbb open-mpi
+	        brew install wget curl cmake protobuf tbb open-mpi
 
           if [[ $(uname -m) == 'arm64' ]]; then
              MINIFORGE_FILE="Miniforge3-24.11.3-2-MacOSX-arm64.sh"
