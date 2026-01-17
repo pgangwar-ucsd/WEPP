@@ -36,6 +36,7 @@ jobs:
           sudo apt update
           sudo apt-get install -y wget curl build-essential python3-pandas pkg-config zip cmake libtbb-dev libprotobuf-dev protobuf-compiler openmpi-bin libopenmpi-dev libboost-all-dev
           
+          # Install Conda
           wget -O Miniforge3.sh "https://github.com/conda-forge/miniforge/releases/download/24.11.3-2/Miniforge3-24.11.3-2-Linux-x86_64.sh"
           bash Miniforge3.sh -b -p "${HOME}/conda"
           echo "${HOME}/conda/bin" >> $GITHUB_PATH
@@ -44,8 +45,15 @@ jobs:
       - name: Install Dependencies (macOS)
         if: runner.os == 'macOS'
         run: |
-          brew install wget curl cmake protobuf tbb open-mpi 
+          # Optimize Homebrew: Skip auto-update to prevent timeouts/errors
+          export HOMEBREW_NO_AUTO_UPDATE=1
+          export HOMEBREW_NO_INSTALL_CLEANUP=1
           
+          # Install libraries
+          # We use '|| true' on link steps to prevent errors if they are already linked
+          brew install wget curl cmake protobuf tbb open-mpi boost
+          
+          # Install Conda
           if [[ $(uname -m) == 'arm64' ]]; then
              MINIFORGE_FILE="Miniforge3-24.11.3-2-MacOSX-arm64.sh"
           else
@@ -60,11 +68,20 @@ jobs:
         run: |
           pip install snakemake pandas
 
+      # --- COMPILE STEP ---
       - name: Compile C++ Code
         run: |
           mkdir -p build
           cd build
-          cmake ..
+          
+          # Set explicit path for CMake to find Boost on macOS
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+             BOOST_ROOT=$(brew --prefix boost)
+             CMAKE_ARGS="-DBOOST_ROOT=${BOOST_ROOT} -DBoost_INCLUDE_DIR=${BOOST_ROOT}/include"
+          fi
+          
+          # Configure and Build
+          cmake $CMAKE_ARGS ..
           make -j2
 
       - name: Run WEPP
